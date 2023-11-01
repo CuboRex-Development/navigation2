@@ -37,10 +37,12 @@
 
 #include <memory>
 #include <string>
+#include <vector>
 
 #include "rclcpp/rclcpp.hpp"
 #include "rclcpp_lifecycle/lifecycle_node.hpp"
 #include "nav2_core/goal_checker.hpp"
+#include "rcl_interfaces/msg/set_parameters_result.hpp"
 
 namespace nav2_controller
 {
@@ -64,12 +66,39 @@ public:
   bool isGoalReached(
     const geometry_msgs::msg::Pose & query_pose, const geometry_msgs::msg::Pose & goal_pose,
     const geometry_msgs::msg::Twist & velocity) override;
+  void loadParameters();
+  void param_event_callback(
+    const rcl_interfaces::msg::ParameterEvent::SharedPtr);
+  rclcpp::Subscription<rcl_interfaces::msg::ParameterEvent>::SharedPtr parameter_event_sub_;
+  rclcpp_lifecycle::LifecycleNode::SharedPtr nh;
+  //std::string plugin_name;
+
+  bool getTolerances(
+          geometry_msgs::msg::Pose & pose_tolerance,
+          geometry_msgs::msg::Twist & vel_tolerance);
+          //geometry_msgs::msg::Twist & vel_tolerance) override;
+
+  rcl_interfaces::msg::SetParametersResult paramCallback(const std::vector<rclcpp::Parameter> &parameters);
+
+private:
+  rclcpp::node_interfaces::OnSetParametersCallbackHandle::SharedPtr param_callback_handle_;
+
 
 protected:
   double xy_goal_tolerance_, yaw_goal_tolerance_;
   bool stateful_, check_xy_;
   // Cached squared xy_goal_tolerance_
   double xy_goal_tolerance_sq_;
+  // Dynamic parameters handler
+  rclcpp::node_interfaces::OnSetParametersCallbackHandle::SharedPtr dyn_params_handler_;
+  std::string plugin_name_;
+
+  /**
+   * @brief Callback executed when a paramter change is detected
+   * @param parameters list of changed parameters
+   */
+  rcl_interfaces::msg::SetParametersResult
+  dynamicParametersCallback(std::vector<rclcpp::Parameter> parameters);
 };
 
 }  // namespace nav2_controller

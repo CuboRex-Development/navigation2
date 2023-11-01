@@ -74,7 +74,31 @@ void SimpleGoalChecker::initialize(
   nh->get_parameter(plugin_name + ".stateful", stateful_);
 
   xy_goal_tolerance_sq_ = xy_goal_tolerance_ * xy_goal_tolerance_;
+
+  // Parameterのコールバックを設定
+  param_callback_handle_ = nh->add_on_set_parameters_callback(
+    std::bind(&SimpleGoalChecker::paramCallback, this, std::placeholders::_1));
+
 }
+
+
+rcl_interfaces::msg::SetParametersResult SimpleGoalChecker::paramCallback(const std::vector<rclcpp::Parameter> &parameters)
+{
+    rcl_interfaces::msg::SetParametersResult result;
+    result.successful = true;
+
+    for (const auto &param : parameters)
+    {
+        if (param.get_name() == "goal_checker.xy_goal_tolerance")
+        {
+            xy_goal_tolerance_ = param.as_double();
+            xy_goal_tolerance_sq_ = xy_goal_tolerance_ * xy_goal_tolerance_;
+        }
+    }
+
+    return result;
+}
+
 
 void SimpleGoalChecker::reset()
 {
@@ -88,6 +112,7 @@ bool SimpleGoalChecker::isGoalReached(
   if (check_xy_) {
     double dx = query_pose.position.x - goal_pose.position.x,
       dy = query_pose.position.y - goal_pose.position.y;
+
     if (dx * dx + dy * dy > xy_goal_tolerance_sq_) {
       return false;
     }
