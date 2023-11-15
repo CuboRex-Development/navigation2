@@ -408,13 +408,6 @@ bool RegulatedPurePursuitController::isCollisionImminent(
     }
   }
 
-  RCLCPP_INFO(logger_,"Collision is not detected in projection %d loop",i);
-  RCLCPP_INFO(logger_,"projection : time : %f,map res: %f,vel:%f"
-    ,projection_time
-    ,costmap_->getResolution()
-    ,fabs(linear_vel)
-  );
-
   carrot_arc_pub_->publish(arc_pts_msg);
 
   return false;
@@ -427,7 +420,6 @@ bool RegulatedPurePursuitController::inCollision(const double & x, const double 
 
   unsigned char cost = costmap_->getCost(mx, my);
 
-  RCLCPP_INFO(logger_,"current cost: %d / boader %d",cost,INSCRIBED_INFLATED_OBSTACLE);
 // Test
 
   // 確認走行用
@@ -474,7 +466,7 @@ bool RegulatedPurePursuitController::detectObstacles(const double & x, const dou
     unsigned char cost = costmap_->getCost(mx, my);
 
     if (cost >= cost_thresh[i]){
-      RCLCPP_INFO(logger_,"obstacle is detected in checkpoint %d (cost: %d)",i,cost);
+      RCLCPP_WARN(logger_,"obstacle is detected in checkpoint %d (cost: %d)",i,cost);
       return true;
     }
   }
@@ -564,7 +556,7 @@ void RegulatedPurePursuitController::applyConstraints(
     }
 
     if(velocity_scaling < 1.0){
-      RCLCPP_INFO(logger_,"Approaching. distance to goal : %f",dist_error);
+      RCLCPP_INFO(logger_,"Approaching.Slow down to %3.1f %% speed. distance to goal : %f",velocity_scaling*100.0 , dist_error);
     }
 
     // Use the lowest velocity between approach and other constraints, if all overlapping
