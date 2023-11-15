@@ -266,6 +266,7 @@ geometry_msgs::msg::TwistStamped RegulatedPurePursuitController::computeVelocity
 
   // Collision checking on this velocity heading
   if (isCollisionImminent(pose, linear_vel, angular_vel)) {
+    RCLCPP_WARN(logger_, "RPP detct collision ! \n ---------  \n --------- \n --------- ");
     throw nav2_core::PlannerException("RegulatedPurePursuitController detected collision ahead!");
   }
 
@@ -335,6 +336,7 @@ bool RegulatedPurePursuitController::isCollisionImminent(
 
   // check current point is OK
   if (inCollision(robot_pose.pose.position.x, robot_pose.pose.position.y)) {
+    RCLCPP_WARN(logger_,"collision detected in current position");
     return true;
   }
 
@@ -375,10 +377,24 @@ bool RegulatedPurePursuitController::isCollisionImminent(
 
     // check for collision at this point
     if (inCollision(curr_pose.x, curr_pose.y)) {
+      RCLCPP_WARN(logger_,"Collision is detected at projection loop %d",i);
+      RCLCPP_INFO(logger_,"projection : time : %f,map res: %f,vel:%f"
+        ,projection_time
+        ,costmap_->getResolution()
+        ,fabs(linear_vel)
+      );
+
       carrot_arc_pub_->publish(arc_pts_msg);
       return true;
     }
   }
+
+  RCLCPP_INFO(logger_,"Collision is not detected in projection %d loop",i);
+  RCLCPP_INFO(logger_,"projection : time : %f,map res: %f,vel:%f"
+    ,projection_time
+    ,costmap_->getResolution()
+    ,fabs(linear_vel)
+  );
 
   carrot_arc_pub_->publish(arc_pts_msg);
 
@@ -392,11 +408,30 @@ bool RegulatedPurePursuitController::inCollision(const double & x, const double 
 
   unsigned char cost = costmap_->getCost(mx, my);
 
+  RCLCPP_INFO(logger_,"current cost: %d / boader %d",cost,INSCRIBED_INFLATED_OBSTACLE);
+// Test
+\
+  // 確認走行用
+  // if (costmap_ros_->getLayeredCostmap()->isTrackingUnknown()) {
+  //   return cost >= 200 && cost != NO_INFORMATION;
+  // } else {
+  //   return cost >= 200;
+  // }
+
+  //  本走行用
   if (costmap_ros_->getLayeredCostmap()->isTrackingUnknown()) {
-    return cost >= INSCRIBED_INFLATED_OBSTACLE && cost != NO_INFORMATION;
+    return cost >= 225 && cost != NO_INFORMATION;
   } else {
-    return cost >= INSCRIBED_INFLATED_OBSTACLE;
+    return cost >= 225;
   }
+
+
+  // if (costmap_ros_->getLayeredCostmap()->isTrackingUnknown()) {
+  //   return cost >= INSCRIBED_INFLATED_OBSTACLE && cost != NO_INFORMATION;
+  // } else {
+  //   return cost >= INSCRIBED_INFLATED_OBSTACLE;
+  // }
+
 }
 
 double RegulatedPurePursuitController::costAtPose(const double & x, const double & y)
