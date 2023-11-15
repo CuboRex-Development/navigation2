@@ -80,11 +80,15 @@ public:
   }
 
   void applyConstraintsWrapper(
-  const double & dist_error, const double & lookahead_dist,
+  const double & dist_error,
   const double & curvature, const geometry_msgs::msg::Twist & curr_speed,
   const double & pose_cost, double & linear_vel)
+  // const double & dist_error, const double & lookahead_dist,
+  // const double & curvature, const geometry_msgs::msg::Twist & curr_speed,
+  // const double & pose_cost, double & linear_vel)
   {
-    return applyConstraints(dist_error, lookahead_dist, curvature, curr_speed, pose_cost, linear_vel);
+    return applyConstraints(dist_error, curvature, curr_speed, pose_cost, linear_vel);
+    // return applyConstraints(dist_error, lookahead_dist, curvature, curr_speed, pose_cost, linear_vel);
   }
 
 };
@@ -265,7 +269,7 @@ TEST(RegulatedPurePursuitTest, applyConstraints)
   ctrl->configure(node, name, tf, costmap);
 
   double dist_error = 0.0;
-  double lookahead_dist = 0.6;
+  // double lookahead_dist = 0.6;
   double curvature = 0.5;
   geometry_msgs::msg::Twist curr_speed;
   double pose_cost = 0.0;
@@ -276,19 +280,22 @@ TEST(RegulatedPurePursuitTest, applyConstraints)
 
   // test curvature regulation (default)
   curr_speed.linear.x = 0.25;
-  ctrl->applyConstraintsWrapper(dist_error, lookahead_dist, curvature, curr_speed, pose_cost, linear_vel);
+  ctrl->applyConstraintsWrapper(dist_error, curvature, curr_speed, pose_cost, linear_vel);
+  // ctrl->applyConstraintsWrapper(dist_error, lookahead_dist, curvature, curr_speed, pose_cost, linear_vel);
   EXPECT_EQ(linear_vel, 0.25);  // min set speed
 
   linear_vel = 1.0;
   curvature = 0.7407;
   curr_speed.linear.x = 0.5;
-  ctrl->applyConstraintsWrapper(dist_error, lookahead_dist, curvature, curr_speed, pose_cost, linear_vel);
+  ctrl->applyConstraintsWrapper(dist_error, curvature, curr_speed, pose_cost, linear_vel);
+  // ctrl->applyConstraintsWrapper(dist_error, lookahead_dist, curvature, curr_speed, pose_cost, linear_vel);
   EXPECT_NEAR(linear_vel, 0.5, 0.01);  // lower by curvature
 
   linear_vel = 1.0;
   curvature = 1000.0;
   curr_speed.linear.x = 0.25;
-  ctrl->applyConstraintsWrapper(dist_error, lookahead_dist, curvature, curr_speed, pose_cost, linear_vel);
+  ctrl->applyConstraintsWrapper(dist_error, curvature, curr_speed, pose_cost, linear_vel);
+  // ctrl->applyConstraintsWrapper(dist_error, lookahead_dist, curvature, curr_speed, pose_cost, linear_vel);
   EXPECT_NEAR(linear_vel, 0.25, 0.01);  // min out by curvature
 
 

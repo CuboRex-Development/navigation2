@@ -205,9 +205,12 @@ protected:
    * @param pose_cost cost at this pose
    */
   void applyConstraints(
-    const double & dist_error, const double & lookahead_dist,
+    const double & dist_error,
     const double & curvature, const geometry_msgs::msg::Twist & speed,
     const double & pose_cost, double & linear_vel);
+    // const double & dist_error, const double & lookahead_dist,
+    // const double & curvature, const geometry_msgs::msg::Twist & speed,
+    // const double & pose_cost, double & linear_vel);
 
   /**
    * @brief Get lookahead point

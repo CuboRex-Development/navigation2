@@ -239,6 +239,15 @@ geometry_msgs::msg::TwistStamped RegulatedPurePursuitController::computeVelocity
     (carrot_pose.pose.position.x * carrot_pose.pose.position.x) +
     (carrot_pose.pose.position.y * carrot_pose.pose.position.y);
 
+  // goal までの距離を算出
+  const int index = transformed_plan.poses.size() -1;
+  double goal_dist2 = 0.1;
+  if(index >= 0){
+    goal_dist2 = 
+      (transformed_plan.poses[index].pose.position.x * transformed_plan.poses[index].pose.position.x) +
+      (transformed_plan.poses[index].pose.position.y * transformed_plan.poses[index].pose.position.y);
+  }
+
   // Find curvature of circle (k = 1 / R)
   double curvature = 0.0;
   if (carrot_dist2 > 0.001) {
@@ -256,9 +265,12 @@ geometry_msgs::msg::TwistStamped RegulatedPurePursuitController::computeVelocity
     rotateToHeading(linear_vel, angular_vel, angle_to_heading, speed);
   } else {
     applyConstraints(
-      fabs(lookahead_dist - sqrt(carrot_dist2)),
-      lookahead_dist, curvature, speed,
+      sqrt(goal_dist2),
+      curvature, speed,
       costAtPose(pose.pose.position.x, pose.pose.position.y), linear_vel);
+      // fabs(lookahead_dist - sqrt(carrot_dist2)),
+      // lookahead_dist, curvature, speed,
+      // costAtPose(pose.pose.position.x, pose.pose.position.y), linear_vel);
 
       // Apply curvature to angular velocity after constraining linear velocity
       angular_vel = linear_vel * curvature;
@@ -289,7 +301,7 @@ bool RegulatedPurePursuitController::shouldRotateToPath(
 bool RegulatedPurePursuitController::shouldRotateToGoalHeading(
   const geometry_msgs::msg::PoseStamped & carrot_pose)
 {
-  // Whether we should rotate robot to goal heading
+  // Whether we should rotate robot 
   double dist_to_goal = std::hypot(carrot_pose.pose.position.x, carrot_pose.pose.position.y);
   return use_rotate_to_heading_ && dist_to_goal < goal_dist_tol_;
 }
@@ -481,9 +493,14 @@ double RegulatedPurePursuitController::costAtPose(const double & x, const double
 }
 
 void RegulatedPurePursuitController::applyConstraints(
-  const double & dist_error, const double & lookahead_dist,
+  //  機能変更したので引数を変更
+  const double & dist_error,
   const double & curvature, const geometry_msgs::msg::Twist & /*curr_speed*/,
   const double & pose_cost, double & linear_vel)
+  
+  // const double & dist_error, const double & lookahead_dist,
+  // const double & curvature, const geometry_msgs::msg::Twist & /*curr_speed*/,
+  // const double & pose_cost, double & linear_vel)
 {
   double curvature_vel = linear_vel;
   double cost_vel = linear_vel;
@@ -516,13 +533,38 @@ void RegulatedPurePursuitController::applyConstraints(
 
   // if the actual lookahead distance is shorter than requested, that means we're at the
   // end of the path. We'll scale linear velocity by error to slow to a smooth stop
-  if (use_approach_vel_scaling_ && dist_error > 2.0 * costmap_->getResolution()) {
-    double velocity_scaling = 1.0 - (dist_error / lookahead_dist);
+  // if (use_approach_vel_scaling_ && dist_error > 2.0 * costmap_->getResolution()) {
+  //   double velocity_scaling = 1.0 - (dist_error / lookahead_dist);
+  //   double unbounded_vel = approach_vel * velocity_scaling;
+  //   if (unbounded_vel < min_approach_linear_velocity_) {
+  //     approach_vel = min_approach_linear_velocity_;
+  //   } else {
+  //     approach_vel *= velocity_scaling;
+  //   }
+
+  //   // Use the lowest velocity between approach and other constraints, if all overlapping
+  //   linear_vel = std::min(linear_vel, approach_vel);
+  // }
+  // ↓残距離に対するスケーリングの計算式を修正
+  // これに応じて引数の dist_err も変更
+
+  if (use_approach_vel_scaling_) {
+    // scaling を開始する距離 暫定で定数
+    const double velocity_scaling_dist = 1.5;
+
+    // scaling の算出　1.0 ~ 0.0 
+    double velocity_scaling = dist_error / velocity_scaling_dist;
+    if(velocity_scaling > 1.0) velocity_scaling = 1.0;
+
     double unbounded_vel = approach_vel * velocity_scaling;
     if (unbounded_vel < min_approach_linear_velocity_) {
       approach_vel = min_approach_linear_velocity_;
     } else {
       approach_vel *= velocity_scaling;
+    }
+
+    if(velocity_scaling < 1.0){
+      RCLCPP_INFO(logger_,"Approaching. distance to goal : %f",dist_error);
     }
 
     // Use the lowest velocity between approach and other constraints, if all overlapping
