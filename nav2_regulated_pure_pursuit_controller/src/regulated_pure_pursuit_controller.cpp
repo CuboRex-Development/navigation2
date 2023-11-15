@@ -340,6 +340,13 @@ bool RegulatedPurePursuitController::isCollisionImminent(
     return true;
   }
 
+  // 正面に障害物があるかの判定
+  if(detectObstacles(robot_pose.pose.position.x, robot_pose.pose.position.y,tf2::getYaw(robot_pose.pose.orientation))){
+    RCLCPP_WARN(logger_,"Obstacle is detected in front of the robot. Robot will stop");
+    return true;
+  }
+
+
   // visualization messages
   nav_msgs::msg::Path arc_pts_msg;
   arc_pts_msg.header.frame_id = costmap_ros_->getGlobalFrameID();
@@ -410,7 +417,7 @@ bool RegulatedPurePursuitController::inCollision(const double & x, const double 
 
   RCLCPP_INFO(logger_,"current cost: %d / boader %d",cost,INSCRIBED_INFLATED_OBSTACLE);
 // Test
-\
+
   // 確認走行用
   // if (costmap_ros_->getLayeredCostmap()->isTrackingUnknown()) {
   //   return cost >= 200 && cost != NO_INFORMATION;
@@ -433,6 +440,36 @@ bool RegulatedPurePursuitController::inCollision(const double & x, const double 
   // }
 
 }
+
+bool RegulatedPurePursuitController::detectObstacles(const double & x, const double & y,const double & theta)
+{
+  //衝突判定する座標　暫定で固定値
+  const int    col_point_n = 5;
+  const double col_x[] = { 0.42, 0.46, 0.50, 0.46, 0.42};
+  const double col_y[] = {-0.10,-0.05, 0.00, 0.05, 0.10};
+
+  //衝突判定する重み　暫定で固定値
+  const unsigned char cost_thresh[] = {250,247,247,247,250};
+
+  for(int i = 0;i < col_point_n;i++){
+    unsigned int mx, my;
+    costmap_->worldToMap(
+      x + col_x[i] * cos(theta) - col_y[i] * sin(theta),
+      y + col_x[i] * sin(theta) + col_y[i] * cos(theta), //world座標
+      mx, my //map座標
+    );
+
+    unsigned char cost = costmap_->getCost(mx, my);
+
+    if (cost >= cost_thresh[i]){
+      RCLCPP_INFO(logger_,"obstacle is detected in checkpoint %d (cost: %d)",i,cost);
+      return true;
+    }
+  }
+
+  return false;
+}
+
 
 double RegulatedPurePursuitController::costAtPose(const double & x, const double & y)
 {

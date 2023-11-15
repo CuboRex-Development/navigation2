@@ -179,6 +179,15 @@ protected:
   bool inCollision(const double & x, const double & y);
 
   /**
+   * @brief ロボットの正面に障害物があるかを判断します。つくチャレ用
+   * @param x Pose of pose x
+   * @param y Pose of pose y
+   * @param theta Pose of pose theta
+   * @return 障害物がある
+   */
+  bool detectObstacles(const double & x, const double & y, const double & theta);
+
+  /**
    * @brief Cost at a point
    * @param x Pose of pose x
    * @param y Pose of pose y
